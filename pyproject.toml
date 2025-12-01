@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "claude-context-zones"
-version = "1.0.0"
+version = "1.1.0"
 description = "Context-aware behavior switching for Claude Code based on filesystem location"
 readme = "README.md"
 license = {text = "MIT"}
@@ -45,6 +45,7 @@ Issues = "https://github.com/guitargnarr/claude-context-zones/issues"
 
 [project.scripts]
 claude-zones = "claude_context_zones.detector:main"
+claude-zones-mcp = "claude_context_zones.mcp_server:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

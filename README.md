@@ -8,6 +8,15 @@
 
 Make your AI assistant adapt its behavior based on where you're working - stricter in finance directories, more exploratory in research folders, security-conscious everywhere it matters.
 
+## What's New in v1.1.0
+
+- **Hook Integration** - Automatic zone loading at session start
+- **MCP Server** - Dynamic zone switching mid-session
+- **Zone Inheritance** - Compose behaviors from multiple zones
+- **Project Overrides** - `.claude-zone` file for per-project control
+- **Usage Metrics** - Track which zones you use most
+- **Parallel Development** - Built-in zone for worktree-based parallel work
+
 ## Why This Exists
 
 Claude Code uses a single `CLAUDE.md` file for behavioral instructions. But your work contexts are different:
@@ -18,6 +27,7 @@ Claude Code uses a single `CLAUDE.md` file for behavioral instructions. But your
 | Financial data | Security-first, double-check math, never expose account numbers |
 | Side projects | Ship fast, minimal docs, trust the developer |
 | Research | Explore freely, cite sources, preserve raw data |
+| Parallel dev | Autonomous execution, time-boxed, no cross-contamination |
 
 **One-size-fits-all instructions create friction.** You either get over-cautious behavior everywhere or risky behavior where it shouldn't be.
 
@@ -26,10 +36,11 @@ Claude Code uses a single `CLAUDE.md` file for behavioral instructions. But your
 Claude Context Zones detects your working directory and loads context-appropriate instructions:
 
 ```
-~/Projects/startup/        → development (ship fast)
-~/Documents/Finance/       → finance (protect data)
-~/Desktop/Job-Search/      → career (track everything)
-~/Documents/Research/      → research (explore freely)
+~/Projects/startup/           → development (ship fast)
+~/Documents/Finance/          → finance (protect data)
+~/Desktop/Job-Search/         → career (track everything)
+~/Documents/Research/         → research (explore freely)
+~/Projects/.worktrees/feat-x/ → parallel (autonomous execution)
 ```
 
 ## Installation
@@ -51,12 +62,19 @@ npm install -g claude-context-zones
 ```bash
 git clone https://github.com/guitargnarr/claude-context-zones.git
 cd claude-context-zones
-./install.sh
+pip install -e .
 ```
 
 ## Quick Start
 
-### 1. Detect your current zone
+### 1. Initialize configuration
+
+```bash
+claude-zones --init
+# Creates ~/.claude/zones.json and example hook
+```
+
+### 2. Detect your current zone
 
 ```bash
 claude-zones
@@ -65,30 +83,175 @@ claude-zones
 # Matched: ~/Projects
 ```
 
-### 2. See zone-specific instructions
+### 3. See zone-specific instructions
 
 ```bash
 claude-zones --config
 # Outputs the behavioral instructions for your current zone
 ```
 
-### 3. Check any path
+### 4. Set up automatic loading (recommended)
 
 ```bash
-claude-zones ~/Documents/Finance/taxes-2024
-# Zone: finance
-# Config: zones/finance.md
+# Generate and install the hook script
+claude-zones --hook > ~/.claude/hooks/session-start.sh
+chmod +x ~/.claude/hooks/session-start.sh
 ```
+
+Now zone instructions load automatically when you start Claude Code!
 
 ## CLI Reference
 
 ```bash
-claude-zones [path]           # Detect zone (default: current directory)
-claude-zones --zone-only      # Output only zone name
-claude-zones --config         # Output zone's behavioral instructions
-claude-zones --json           # Output as JSON
-claude-zones --help           # Show help
+# Basic usage
+claude-zones [path]              # Detect zone (default: current directory)
+claude-zones --zone-only         # Output only zone name
+claude-zones --config            # Output zone's behavioral instructions
+claude-zones --with-inheritance  # Include inherited zone configs
+claude-zones --json              # Output as JSON
+
+# Setup & management
+claude-zones --init              # Initialize user config in ~/.claude/
+claude-zones --hook              # Output hook script for auto-loading
+claude-zones --list-zones        # List all available zones
+
+# Metrics
+claude-zones --log               # Log this detection for metrics
+claude-zones --metrics           # Show usage statistics
+
+# Help
+claude-zones --help              # Show all options
 ```
+
+## New Features
+
+### Hook Integration (Automatic Zone Loading)
+
+Instead of manually checking zones, have them load automatically:
+
+```bash
+# Generate hook script
+claude-zones --hook > ~/.claude/hooks/session-start.sh
+chmod +x ~/.claude/hooks/session-start.sh
+```
+
+Now every Claude Code session starts with the appropriate zone context.
+
+### MCP Server (Dynamic Zone Switching)
+
+Switch zones mid-session without restarting Claude Code.
+
+**Setup:**
+
+Add to your `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "claude-zones": {
+      "command": "claude-zones-mcp"
+    }
+  }
+}
+```
+
+**Available MCP Tools:**
+
+| Tool | Description |
+|------|-------------|
+| `detect_zone` | Get current zone based on working directory |
+| `get_zone_config` | Get behavioral instructions for a zone |
+| `switch_zone` | Manually switch to a different zone |
+| `list_zones` | List all available zones |
+| `get_metrics` | Get zone usage statistics |
+| `clear_override` | Return to auto-detection |
+
+**Usage in Claude:**
+```
+"Switch to finance mode" → Claude calls switch_zone tool
+"What zone am I in?" → Claude calls detect_zone tool
+```
+
+### Zone Inheritance
+
+Create zones that inherit behaviors from other zones:
+
+```json
+{
+  "client-finance": {
+    "paths": ["~/Projects/clients/bank-corp/*"],
+    "inherits": ["development", "finance"],
+    "config": "zones/client-finance.md"
+  }
+}
+```
+
+This zone gets:
+1. Its own specific rules (client-finance.md)
+2. Development zone behaviors
+3. Finance zone security rules
+
+View inheritance chain:
+```bash
+claude-zones --config --with-inheritance
+```
+
+### Project-Level Overrides
+
+Create a `.claude-zone` file in any project to override auto-detection:
+
+```bash
+# ~/Projects/my-startup/.claude-zone
+development
+# This project is always development mode, regardless of path
+```
+
+The file is simple: first non-comment line is the zone name.
+
+### Usage Metrics
+
+Track which zones you use most:
+
+```bash
+claude-zones --metrics
+# Total detections: 247
+#
+# Zone usage counts:
+#   development: 189
+#   career: 32
+#   research: 18
+#   finance: 8
+#
+# Recent:
+#   development - /Users/me/Projects/startup
+#   career - /Users/me/Desktop/Job-Search
+```
+
+Enable logging for all detections:
+```bash
+claude-zones --log  # Logs to ~/.claude/zone-history.log
+```
+
+### Parallel Development Zone
+
+Built-in zone for git worktree-based parallel development:
+
+```json
+{
+  "parallel": {
+    "paths": ["~/Projects/.worktrees/*", "*/.worktrees/*"],
+    "inherits": ["development"],
+    "config": "zones/parallel.md"
+  }
+}
+```
+
+Key behaviors:
+- Autonomous execution (no waiting for verification)
+- Time-boxed work (30-45 min)
+- Progress markers every 10-15 min
+- 70-85% completion acceptable
+- Error handling with documented blockers
 
 ## Configuration
 
@@ -128,6 +291,11 @@ Edit `~/.claude/zones.json` to map directories to zones:
       "~/Projects/*analysis*"
     ],
     "config": "zones/research.md"
+  },
+  "client-vip": {
+    "paths": ["~/Projects/clients/vip-corp/*"],
+    "inherits": ["development"],
+    "config": "zones/client-vip.md"
   }
 }
 ```
@@ -147,6 +315,7 @@ Edit markdown files in `~/.claude/zones/` to customize instructions:
 ├── finance.md      # Financial data context
 ├── development.md  # Coding context
 ├── research.md     # Analysis context
+├── parallel.md     # Parallel development
 └── default.md      # Fallback
 ```
 
@@ -196,6 +365,17 @@ For analysis, exploration, learning.
 - Preserve raw data, work on copies
 - Document methodology
 
+### Parallel Zone (`parallel.md`)
+
+For git worktree-based parallel development.
+
+**Key behaviors:**
+- Autonomous execution without user verification
+- Time-boxed work (30-45 min)
+- Progress markers every 10-15 min
+- 70-85% completion acceptable
+- Document blockers, don't block on perfection
+
 ### Default Zone (`default.md`)
 
 Fallback for unmatched paths.
@@ -215,6 +395,7 @@ Edit `~/.claude/zones.json`:
 {
   "client-acme": {
     "paths": ["~/Projects/clients/acme/*"],
+    "inherits": ["development"],
     "config": "zones/client-acme.md"
   }
 }
@@ -246,46 +427,62 @@ Working on ACME Corp projects. Billable work, client-facing.
 ```bash
 claude-zones ~/Projects/clients/acme/webapp
 # Zone: client-acme
+# Inherits: client-acme → development
 ```
 
 ## Integration with Claude Code
 
-### Option 1: Manual reference
+### Option 1: Automatic via hooks (recommended)
+
+```bash
+claude-zones --hook > ~/.claude/hooks/session-start.sh
+chmod +x ~/.claude/hooks/session-start.sh
+```
+
+### Option 2: MCP Server (dynamic switching)
+
+Add to `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "claude-zones": {
+      "command": "claude-zones-mcp"
+    }
+  }
+}
+```
+
+### Option 3: Manual reference
 
 Add to your `~/.claude/CLAUDE.md`:
 
 ```markdown
 # Zone-based behaviors
-# Current zone: $(claude-zones --zone-only)
-# Load zone config with: claude-zones --config
+# Run `claude-zones --config` to see current zone instructions
 ```
-
-### Option 2: Dynamic loading (advanced)
-
-Claude Code doesn't natively support dynamic file loading, but you can:
-
-1. Use a shell alias to print zone config before starting:
-   ```bash
-   alias claude-work='claude-zones --config && claude'
-   ```
-
-2. Reference zone configs in project-level `CLAUDE.md` files
 
 ## How It Works
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    claude-zones CLI                      │
-├─────────────────────────────────────────────────────────┤
-│  1. Get current working directory (or provided path)    │
-│  2. Load zone definitions from ~/.claude/zones.json     │
-│  3. Match path against zone patterns (first match wins) │
-│  4. Return zone name + config file path                 │
-│  5. Optionally output zone config content               │
-└─────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                    claude-zones CLI                          │
+├─────────────────────────────────────────────────────────────┤
+│  1. Check for .claude-zone override in project              │
+│  2. Get current working directory (or provided path)        │
+│  3. Load zone definitions from ~/.claude/zones.json         │
+│  4. Match path against zone patterns (first match wins)     │
+│  5. Resolve inheritance chain                               │
+│  6. Return zone name + config + inheritance                 │
+│  7. Optionally output merged config content                 │
+│  8. Log to metrics if --log flag                            │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-**Matching priority:** Patterns are checked in order. Put more specific patterns first:
+**Matching priority:**
+1. `.claude-zone` file in project (highest)
+2. Patterns checked in order from zones.json
+3. Put more specific patterns first
 
 ```json
 {
@@ -310,20 +507,36 @@ Zone-based behavioral switching is grounded in context-aware computing research:
 ### Zone not detected correctly
 
 1. Check path matching: `claude-zones --json /your/path`
-2. Verify `~/.claude/zones.json` syntax
-3. Ensure more specific patterns come first
+2. Check for `.claude-zone` override: `ls -la .claude-zone`
+3. Verify `~/.claude/zones.json` syntax
+4. Ensure more specific patterns come first
+5. Check inheritance: `claude-zones --config --with-inheritance`
 
 ### Config file not found
 
 1. Run `claude-zones --config` to see which file it's looking for
 2. Check `~/.claude/zones/` directory exists
 3. Verify file permissions
+4. Run `claude-zones --init` to create defaults
+
+### Hook not loading
+
+1. Verify hook is executable: `ls -la ~/.claude/hooks/`
+2. Check hook syntax: `bash -n ~/.claude/hooks/session-start.sh`
+3. Ensure claude-zones is in PATH
+
+### MCP server issues
+
+1. Check server is running: `claude-zones-mcp` in terminal
+2. Verify config in `claude_desktop_config.json`
+3. Check Claude Code logs for MCP errors
 
 ### Changes not taking effect
 
 Zone configs are read fresh each time. If changes aren't appearing:
 1. Check you're editing the right file (`~/.claude/zones/`)
 2. Verify no syntax errors in your zone markdown
+3. Clear any manual override: MCP `clear_override` tool
 
 ## Contributing
 
@@ -343,4 +556,4 @@ Built by [Matthew Scott](https://github.com/guitargnarr) as part of an AI-native
 
 ---
 
-**Related:** This tool emerged from research on context-aware AI configuration. See the [analysis](docs/analysis.md) for the full story.
+**Origin:** This tool emerged from research on context-aware AI configuration in the [from-the-command-before-time](https://github.com/guitargnarr/from-the-command-before-time) analysis project, which identified "zone-based behavioral switching" as a novel, academically-grounded pattern for Claude Code optimization.
