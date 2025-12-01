@@ -1,0 +1,42 @@
+{
+  "name": "claude-context-zones",
+  "version": "1.0.0",
+  "description": "Context-aware behavior switching for Claude Code based on filesystem location",
+  "main": "bin/claude-zones.js",
+  "bin": {
+    "claude-zones": "./bin/claude-zones.js"
+  },
+  "scripts": {
+    "test": "node bin/claude-zones.js --help"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/guitargnarr/claude-context-zones.git"
+  },
+  "keywords": [
+    "claude",
+    "claude-code",
+    "ai",
+    "context-aware",
+    "llm",
+    "developer-tools",
+    "productivity",
+    "cli"
+  ],
+  "author": "Matthew Scott <matthewdscott7@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/guitargnarr/claude-context-zones/issues"
+  },
+  "homepage": "https://github.com/guitargnarr/claude-context-zones#readme",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "files": [
+    "bin/",
+    "zones/",
+    "zones.example.json",
+    "README.md",
+    "LICENSE"
+  ]
+}
