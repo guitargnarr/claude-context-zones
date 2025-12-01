@@ -1,0 +1,41 @@
+{
+  "career": {
+    "paths": [
+      "~/Desktop/1_PRIORITY_JOB_SEARCH",
+      "~/Documents/Career",
+      "~/Projects/*job*",
+      "~/Projects/*resume*"
+    ],
+    "config": "zones/career.md"
+  },
+  "finance": {
+    "paths": [
+      "~/Documents/Finance",
+      "~/Projects/*budget*",
+      "~/Projects/*tax*"
+    ],
+    "config": "zones/finance.md"
+  },
+  "development": {
+    "paths": [
+      "~/Projects",
+      "~/Code",
+      "~/Developer"
+    ],
+    "config": "zones/development.md"
+  },
+  "research": {
+    "paths": [
+      "~/Documents/Research",
+      "~/Projects/*research*",
+      "~/Projects/*analysis*"
+    ],
+    "config": "zones/research.md"
+  },
+  "client-work": {
+    "paths": [
+      "~/Projects/clients/*"
+    ],
+    "config": "zones/client.md"
+  }
+}
